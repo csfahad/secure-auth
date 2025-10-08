@@ -1,0 +1,36 @@
+# ========================
+# Global Node Ignore
+# ========================
+node_modules/
+pnpm-debug.log*
+
+# ========================
+# Operating System Files
+# ========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+
+# ========================
+# Logs
+# ========================
+logs
+*.log
+log/
+*.gz
+
+# ========================
+# Environment Variables (but NOT example files)
+# ========================
+.env
+
+# ========================
+# Build Output
+# ========================
+dist/
+build/
+.cache/
+tmp/
+temp/
