@@ -34,3 +34,5 @@ build/
 .cache/
 tmp/
 temp/
+
+/src/generated/prisma
