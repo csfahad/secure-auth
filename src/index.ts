@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import authRoutes from "./routes/auth.route";
 
 dotenv.config();
 
@@ -13,9 +14,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Public routes
-app.get("/", (req, res) => {
-    res.status(200).json("Server is running");
-});
+app.use("/api/v1/auth", authRoutes);
 
 // Private routes
 
