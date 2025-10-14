@@ -9,17 +9,15 @@ datasource db {
 
 // User table - stores base profile and credentials
 model User {
-    id              String    @id @default(uuid())
-    email           String?   @unique
-    phone           String?   @unique
+    id              String   @id @default(uuid())
+    email           String?  @unique
+    phone           String?  @unique
     name            String?
     passwordHash    String? // null for OAuth users
-    otpCode         String?
-    otpExpiresAt    DateTime?
-    isEmailVerified Boolean   @default(false)
-    isPhoneVerified Boolean   @default(false)
-    createdAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
+    isEmailVerified Boolean  @default(false)
+    isPhoneVerified Boolean  @default(false)
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 
     // Relations
     accounts           Account[]
