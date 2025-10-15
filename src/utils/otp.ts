@@ -7,7 +7,7 @@ export function generateOtp(length = 6) {
 export async function sendOtp(
     destination: string,
     otp: string,
-    channel: "email" | "sms"
+    channel: "email" | "phone"
 ) {
     if (process.env.NODE_ENV === "development") {
         console.log(`[DEV MODE]: OTP for ${destination}: ${otp}`);
