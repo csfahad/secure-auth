@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import prisma from "../db/prisma";
+import prisma from "../lib/prisma";
 import { registerSchema } from "../validators/authSchema";
 import { generateOtp, sendOtp } from "../utils/otp";
 import { storeOtp, verifyOtp } from "../utils/otpService";
