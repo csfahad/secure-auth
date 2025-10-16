@@ -8,7 +8,12 @@ import { storeOtp, verifyOtp } from "../utils/otpService";
 import { verifyOtpSchema } from "../validators/authSchema";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 import { setAuthCookies } from "../utils/cookies";
-import { rotateSession } from "../services/sessionService";
+import {
+    revokeSessionByToken,
+    rotateSession,
+} from "../services/sessionService";
+
+const isProd = process.env.NODE_ENV === "production";
 
 export const registerHandler = async (req: Request, res: Response) => {
     const parsed = registerSchema.safeParse(req.body);
@@ -145,6 +150,22 @@ export const login = async (req: Request, res: Response) => {
     console.log(`login controller`);
 };
 
-export const logout = async (req: Request, res: Response) => {
-    console.log(`logout controller`);
+export const logoutHandler = async (req: Request, res: Response) => {
+    try {
+        const token = req.cookies?.refreshToken as string | undefined;
+        if (token) {
+            await revokeSessionByToken(token);
+        }
+        // clear cookie
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+        });
+
+        res.clearCookie("accessToken");
+        return res.json({ message: "Logged out successfully" });
+    } catch (err) {
+        res.status(401).json({ error: "Failed to logout", err });
+    }
 };

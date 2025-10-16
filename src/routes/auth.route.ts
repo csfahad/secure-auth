@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
     login,
-    logout,
+    logoutHandler,
     registerHandler,
     tokenRefreshHandler,
     verifyOtpHandler,
@@ -13,6 +13,6 @@ router.post("/register", registerHandler);
 router.post("/verify-otp", verifyOtpHandler);
 router.post("/token-refresh", tokenRefreshHandler);
 router.post("/login", login);
-router.post("/logout", logout);
+router.post("/logout", logoutHandler);
 
 export default router;
