@@ -18,11 +18,19 @@ export const register = async (req: Request, res: Response) => {
 
     const { name, email, password, phone } = parsed.data;
     try {
+        if (!email && !phone) {
+            return res
+                .status(400)
+                .json({ error: "Either email or phone number is required." });
+        }
+
         const existingUser = await prisma.user.findFirst({
             where: { OR: [{ email }, { phone }] },
         });
         if (existingUser) {
-            return res.status(400).json({ error: "User already exists." });
+            return res.status(400).json({
+                error: "User already exists with the given email or phone number.",
+            });
         }
 
         const saltRounds = 10;
@@ -43,14 +51,15 @@ export const register = async (req: Request, res: Response) => {
         });
 
         const channel = email ? "email" : "phone";
+        const purpose = "REGISTER";
         const otp = generateOtp();
-        await storeOtp(`${channel}:${user.id}`, otp, "REGISTER");
+        await storeOtp(`${channel}:${user.id}`, otp, purpose);
         await sendOtp(email ?? phone!, otp, channel);
 
         return res.status(201).json({
-            message: `User registered, Please verify your account. OTP sent to ${
+            message: `OTP sent to your ${channel}: ${
                 email ?? phone
-            }`,
+            }, Please verify your account using the OTP delivered to you.`,
             userId: user.id,
         });
     } catch (err) {
