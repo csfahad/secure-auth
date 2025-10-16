@@ -20,5 +20,17 @@ export function generateRefreshToken(userId: string) {
 }
 
 export function verifyAccessToken(token: string) {
-    return jwt.verify(token, ACCESS_SECRET);
+    try {
+        return jwt.verify(token, ACCESS_SECRET) as { userId: string };
+    } catch (err) {
+        return null;
+    }
+}
+
+export function verifyRefreshToken(token: string) {
+    try {
+        return jwt.verify(token, REFRESH_SECRET) as { userId: string };
+    } catch (err) {
+        return null;
+    }
 }
