@@ -8,8 +8,9 @@ import { storeOtp, verifyOtp } from "../utils/otpService";
 import { verifyOtpSchema } from "../validators/authSchema";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 import { setAuthCookies } from "../utils/cookies";
+import { rotateSession } from "../services/sessionService";
 
-export const register = async (req: Request, res: Response) => {
+export const registerHandler = async (req: Request, res: Response) => {
     const parsed = registerSchema.safeParse(req.body);
 
     if (!parsed.success) {
@@ -106,6 +107,36 @@ export const verifyOtpHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ message: err.message });
         }
         console.error("OTP verification error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const tokenRefreshHandler = async (req: Request, res: Response) => {
+    try {
+        const oldRefresh = req.cookies?.refreshToken as string | undefined;
+        if (!oldRefresh) {
+            return res.status(401).json({ error: "No Refresh token found" });
+        }
+
+        const result = await rotateSession(oldRefresh);
+
+        if (!result.OK) {
+            // handle reuse detection
+            if (
+                result.reason === "revoked_or_expired" ||
+                result.reason === "not_found"
+            ) {
+                return res.status(401).json({ error: "Invalid refresh token" });
+            }
+            return res.status(401).json({ error: "Could not rotate token" });
+        }
+
+        // issue new access token
+        const accessToken = generateAccessToken(result.userId as string);
+        setAuthCookies(res, accessToken, result.rawToken as string);
+        return res.json({ accessToken });
+    } catch (err) {
+        console.error("Token refresh error", err);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
