@@ -36,9 +36,10 @@ model Session {
     userId           String
     user             User     @relation(fields: [userId], references: [id])
     refreshTokenHash String   @unique
+    revoked          Boolean  @default(false)
+    replacedById     String?
     expiresAt        DateTime
     createdAt        DateTime @default(now())
-    revoked          Boolean  @default(false)
 }
 
 // VerificationToken table - used for verifying new accounts or email changes
