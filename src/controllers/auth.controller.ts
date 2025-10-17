@@ -2,13 +2,14 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import prisma from "../lib/prisma";
-import { registerSchema } from "../validators/authSchema";
+import { loginSchema, registerSchema } from "../validators/authSchema";
 import { generateOtp, sendOtp } from "../utils/otp";
 import { storeOtp, verifyOtp } from "../utils/otpService";
 import { verifyOtpSchema } from "../validators/authSchema";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 import { setAuthCookies } from "../utils/cookies";
 import {
+    createSession,
     revokeSessionByToken,
     rotateSession,
 } from "../services/sessionService";
@@ -82,31 +83,57 @@ export const verifyOtpHandler = async (req: Request, res: Response) => {
         return res.status(400).json({ error: parsed.error.flatten() });
     }
 
-    const { userId, otp, channel } = parsed.data;
+    const { userId, otp, channel, purpose } = parsed.data;
 
     try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
         const identifier = `${channel}:${userId}`;
-        const valid = await verifyOtp(identifier, otp, "REGISTER");
-        if (!valid)
+        const isValid = await verifyOtp(identifier, otp, purpose);
+        if (!isValid)
             return res.status(400).json({ error: "Invalid or expired OTP" });
 
-        const user = await prisma.user.update({
-            where: { id: userId },
-            data:
-                channel === "email"
-                    ? { isEmailVerified: true }
-                    : { isPhoneVerified: true },
-        });
+        if (purpose === "REGISTER") {
+            const updateData:
+                | Record<string, unknown>
+                | Record<string, unknown>[] = {};
+            if (channel === "email") updateData.isEmailVerified = true;
+            if (channel === "phone") updateData.isPhoneVerified = true;
 
-        const accessToken = generateAccessToken(user.id);
-        const refreshToken = generateRefreshToken(user.id);
-        setAuthCookies(res, accessToken, refreshToken);
-        return res.status(200).json({
-            message: `${
-                channel === "email" ? "Email" : "Phone"
-            } verified successfully`,
-            user: { userId: user.id, email: user.email, phone: user.phone },
-        });
+            await prisma.user.update({
+                where: { id: user.id },
+                data: updateData,
+            });
+
+            return res.status(200).json({
+                message: `${channel} verification successful.`,
+            });
+        }
+
+        if (purpose === "LOGIN") {
+            const accessToken = generateAccessToken(user.id);
+            const { rawToken: refreshToken } = await createSession(user.id);
+
+            setAuthCookies(res, accessToken, refreshToken as string);
+
+            return res.status(200).json({
+                message: "Login successful via OTP",
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone,
+                },
+                accessToken, // optional (useful only when using Authorization headers)
+            });
+        }
+
+        return res.status(400).json({ error: "Unknown OTP purpose" });
     } catch (err) {
         if (err instanceof z.ZodError) {
             return res.status(400).json({ message: err.message });
@@ -146,8 +173,79 @@ export const tokenRefreshHandler = async (req: Request, res: Response) => {
     }
 };
 
-export const login = async (req: Request, res: Response) => {
-    console.log(`login controller`);
+export const loginHandler = async (req: Request, res: Response) => {
+    const parsed = loginSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    const { email, password, phone } = parsed.data;
+
+    try {
+        // ---------- EMAIL + PASSWORD FLOW ----------
+
+        if (email) {
+            // find user by email
+            const user = await prisma.user.findUnique({
+                where: { email: email.toLowerCase() },
+            });
+            if (!user || !user.passwordHash) {
+                return res.status(401).json({ error: "Invalid credentials" });
+            }
+
+            const isValid = await bcrypt.compare(password!, user.passwordHash);
+            if (!isValid) {
+                return res.status(401).json({ error: "Invalid credentials" });
+            }
+
+            // creds valid: Create session & tokens
+            const accessToken = generateAccessToken(user.id);
+            const { rawToken: refreshToken } = await createSession(user.id);
+            setAuthCookies(res, accessToken, refreshToken as string);
+
+            return res.status(200).json({
+                message: "Login successful",
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone,
+                },
+                accessToken, // optional (useful only when using Authorization headers)
+            });
+        }
+
+        // ---------- PHONE (OTP) FLOW ----------
+        if (phone) {
+            // find or create user by phone
+            let user = await prisma.user.findUnique({ where: { phone } });
+
+            if (!user) {
+                // create a minimal user for this phone number (no password)
+                user = await prisma.user.create({
+                    data: { phone, name: null, passwordHash: null },
+                });
+            }
+
+            const otp = generateOtp();
+            const channelKey = `phone:${user.id}`;
+            await storeOtp(channelKey, otp, "LOGIN");
+            await sendOtp(phone, otp, "phone");
+
+            return res.status(200).json({
+                message:
+                    "OTP sent to your phone. Please verify using the same OTP to login.",
+                userId: user.id,
+            });
+        }
+        return res.status(400).json({ error: "Invalid login request" });
+    } catch (err) {
+        if (err instanceof z.ZodError) {
+            return res.status(400).json({ message: err.message });
+        }
+        res.status(500).json({ message: "Internal server error" });
+    }
 };
 
 export const logoutHandler = async (req: Request, res: Response) => {
