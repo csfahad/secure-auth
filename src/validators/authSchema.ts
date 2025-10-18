@@ -52,8 +52,12 @@ export const loginSchema = z
         }
     });
 
-export const resendOtpSchema = z.object({
+export const verifyOtpSchema = z.object({
     userId: z.uuid("Invalid User ID"),
+    otp: z
+        .string()
+        .length(6, "OTP must be at 6 digits long")
+        .regex(/^\d+$/, "OTP must contain only digits"),
     channel: z
         .enum(["email", "phone"])
         .refine(
@@ -68,12 +72,8 @@ export const resendOtpSchema = z.object({
         ),
 });
 
-export const verifyOtpSchema = z.object({
+export const resendOtpSchema = z.object({
     userId: z.uuid("Invalid User ID"),
-    otp: z
-        .string()
-        .length(6, "OTP must be at 6 digits long")
-        .regex(/^\d+$/, "OTP must contain only digits"),
     channel: z
         .enum(["email", "phone"])
         .refine(

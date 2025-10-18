@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { email, z } from "zod";
+import { z } from "zod";
 import prisma from "../lib/prisma";
 import {
     loginSchema,
     registerSchema,
+    verifyOtpSchema,
     resendOtpSchema,
 } from "../validators/authSchema";
 import {
@@ -13,8 +14,7 @@ import {
     sendOtp,
     storeOtp,
     verifyOtp,
-} from "../utils/otpService";
-import { verifyOtpSchema } from "../validators/authSchema";
+} from "../services/otpService";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 import { setAuthCookies } from "../utils/cookies";
 import {
@@ -22,6 +22,7 @@ import {
     revokeSessionByToken,
     rotateSession,
 } from "../services/sessionService";
+import { redis } from "../lib/redis";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -67,9 +68,10 @@ export const registerHandler = async (req: Request, res: Response) => {
         });
 
         const channel = email ? "email" : "phone";
+        const identifier = `${channel}:${user.id}`;
         const purpose = "REGISTER";
         const otp = generateOtp();
-        await storeOtp(`${channel}:${user.id}`, otp, purpose);
+        await storeOtp(identifier, otp, purpose);
         await sendOtp(email ?? phone!, otp, channel);
 
         return res.status(201).json({
@@ -128,6 +130,9 @@ export const verifyOtpHandler = async (req: Request, res: Response) => {
             const accessToken = generateAccessToken(user.id);
             const { rawToken: refreshToken } = await createSession(user.id);
 
+            // mark as verified temporarily
+            await redis.setex(`otp-verified:phone:${user.id}`, 300, "true");
+
             setAuthCookies(res, accessToken, refreshToken as string);
 
             return res.status(200).json({
@@ -164,20 +169,31 @@ export const resendOtpHandler = async (req: Request, res: Response) => {
             return res.status(404).json({ error: "User not found" });
         }
 
+        const verified = await redis.get(`otp-verified:${channel}:${user.id}`);
+        if (verified) {
+            return res
+                .status(400)
+                .json({ error: "User already verified, cannot resend OTP." });
+        }
+
         const identifier = `${channel}:${user.id}`;
 
         // rate-limit check
-        const allowed = await canRequestOtp(identifier);
+        const { allowed, reason } = await canRequestOtp(identifier, purpose);
         if (!allowed) {
             return res.status(429).json({
-                error: "Too frequent OTP requests. Please wait a minute before retrying.",
+                error: `Cannot resend OTP: ${reason}`,
             });
         }
 
         // generate and store OTP
         const otp = generateOtp();
         await storeOtp(identifier, otp, purpose);
-        await sendOtp(user.email ?? user.phone!!, otp, channel);
+        if (channel === "email" && user.email)
+            await sendOtp(user.email, otp, "email");
+        else if (channel === "phone" && user.phone)
+            await sendOtp(user.phone, otp, "phone");
+        else return res.status(400).json({ error: "Missing destination" });
 
         return res.status(200).json({
             message: `OTP resent to your ${channel}.`,
