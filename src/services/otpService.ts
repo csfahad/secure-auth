@@ -104,3 +104,21 @@ export async function canRequestOtp(
 
     return { allowed: true };
 }
+
+export async function cleanupOtpFlags(userId: string) {
+    const keys = [
+        `otp-verified:phone:${userId}`,
+        `otp-verified:email:${userId}`,
+        `otp-rate:phone:${userId}`,
+        `otp-rate:email:${userId}`,
+        `otp-hourly:phone:${userId}`,
+        `otp-hourly:email:${userId}`,
+    ];
+    try {
+        if (keys.length > 0) {
+            await redis.del(...keys);
+        }
+    } catch (err) {
+        console.error("Redis cleanup failed:", err);
+    }
+}

@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma";
 import { generateRandomToken, hashToken } from "../utils/crypto";
+import { cleanupOtpFlags } from "./otpService";
 
 const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS!);
 
@@ -73,8 +74,17 @@ export async function rotateSession(oldRawToken: string) {
 
 export async function revokeSessionByToken(rawToken: string) {
     const hashed = hashToken(rawToken);
-    await prisma.session.updateMany({
-        where: { refreshTokenHash: hashed },
-        data: { revoked: true },
+    const session = await prisma.session.findFirst({
+        where: { refreshTokenHash: hashed, revoked: false },
+        include: { user: true },
     });
+
+    if (session) {
+        await prisma.session.update({
+            where: { id: session.id },
+            data: { revoked: true },
+        });
+
+        await cleanupOtpFlags(session.userId);
+    }
 }

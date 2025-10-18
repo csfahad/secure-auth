@@ -87,3 +87,13 @@ export const resendOtpSchema = z.object({
             "Purpose is required (REGISTER | LOGIN)"
         ),
 });
+
+export const forgetPasswordSchema = z.object({
+    email: z.email("Invalid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+    userId: z.uuid(),
+    token: z.string(),
+    newPassword: z.string().min(8, "Password must be atleast 8 characters"),
+});

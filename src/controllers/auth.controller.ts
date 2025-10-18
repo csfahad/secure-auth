@@ -325,7 +325,11 @@ export const logoutHandler = async (req: Request, res: Response) => {
             sameSite: isProd ? "none" : "lax",
         });
 
-        res.clearCookie("accessToken");
+        res.clearCookie("accessToken", {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+        });
         return res.json({ message: "Logged out successfully" });
     } catch (err) {
         res.status(401).json({ error: "Failed to logout", err });
