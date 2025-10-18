@@ -7,6 +7,8 @@ import {
     registerSchema,
     verifyOtpSchema,
     resendOtpSchema,
+    forgetPasswordSchema,
+    resetPasswordSchema,
 } from "../validators/authSchema";
 import {
     canRequestOtp,
@@ -23,6 +25,11 @@ import {
     rotateSession,
 } from "../services/sessionService";
 import { redis } from "../lib/redis";
+import {
+    createPasswordResetToken,
+    revokeAllUserSessions,
+    verifyPasswordResetToken,
+} from "../services/passwordResetService";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -333,5 +340,83 @@ export const logoutHandler = async (req: Request, res: Response) => {
         return res.json({ message: "Logged out successfully" });
     } catch (err) {
         res.status(401).json({ error: "Failed to logout", err });
+    }
+};
+
+export const forgotPasswordHandler = async (req: Request, res: Response) => {
+    const parsed = forgetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    const { email } = parsed.data;
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
+        if (!user) {
+            return res.status(200).json({
+                message:
+                    "If account exists with this email, a reset link has been sent.",
+            });
+        }
+
+        const token = createPasswordResetToken(user.id);
+
+        // in production: send email with reset-link
+        const resetLink = `${
+            isProd ? process.env.FRONTEND_URL : "http://localhost:3000"
+        }/auth/reset-password?token=${token}&id=${user.id}`;
+
+        // in dev mode: log it to console
+        console.log(`Password reset link (dev): ${resetLink}`);
+
+        // TODO: send email in production
+        return res
+            .status(200)
+            .json({ message: "Password reset link sent to your email." });
+    } catch (err) {
+        if (err instanceof z.ZodError) {
+            return res.status(400).json({ message: err.message });
+        }
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const resetPasswordHandler = async (req: Request, res: Response) => {
+    const parsed = resetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    const { userId, token, newPassword } = parsed.data;
+    try {
+        const isValid = verifyPasswordResetToken(userId, token);
+        if (!isValid) {
+            res.status(400).json({ error: "Invalid or expired reset token" });
+        }
+
+        const saltRounds = 10;
+        const salt = await bcrypt.genSalt(saltRounds);
+        const passwordHash = newPassword
+            ? await bcrypt.hash(newPassword, salt)
+            : null;
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { passwordHash },
+        });
+
+        // revoke all sessions for this user
+        await revokeAllUserSessions(userId);
+
+        return res.status(200).json({
+            message:
+                "Password reset successful. You can now log in with your new password.",
+        });
+    } catch (err) {
+        if (err instanceof z.ZodError) {
+            return res.status(400).json({ message: err.message });
+        }
+        return res.status(500).json({ error: "Internal server error" });
     }
 };
