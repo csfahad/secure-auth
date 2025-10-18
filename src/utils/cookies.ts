@@ -23,3 +23,16 @@ export function setAuthCookies(
         maxAge: REFRESH_MAX_AGE, // 7 days
     });
 }
+
+export function clearAuthCookies(res: Response) {
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
+    });
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
+    });
+}
