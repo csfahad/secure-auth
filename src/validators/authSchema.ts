@@ -52,8 +52,20 @@ export const loginSchema = z
         }
     });
 
-export const sendOtpSchema = z.object({
-    email: z.email("Invalid email address"),
+export const resendOtpSchema = z.object({
+    userId: z.uuid("Invalid User ID"),
+    channel: z
+        .enum(["email", "phone"])
+        .refine(
+            (val) => ["email", "phone"].includes(val),
+            "Channel is required (email or phone)"
+        ),
+    purpose: z
+        .enum(["REGISTER", "LOGIN"])
+        .refine(
+            (val) => ["REGISTER", "LOGIN"].includes(val),
+            "Purpose is required (REGISTER | LOGIN)"
+        ),
 });
 
 export const verifyOtpSchema = z.object({

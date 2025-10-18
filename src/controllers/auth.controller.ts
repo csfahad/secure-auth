@@ -1,10 +1,19 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
+import { email, z } from "zod";
 import prisma from "../lib/prisma";
-import { loginSchema, registerSchema } from "../validators/authSchema";
-import { generateOtp, sendOtp } from "../utils/otp";
-import { storeOtp, verifyOtp } from "../utils/otpService";
+import {
+    loginSchema,
+    registerSchema,
+    resendOtpSchema,
+} from "../validators/authSchema";
+import {
+    canRequestOtp,
+    generateOtp,
+    sendOtp,
+    storeOtp,
+    verifyOtp,
+} from "../utils/otpService";
 import { verifyOtpSchema } from "../validators/authSchema";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 import { setAuthCookies } from "../utils/cookies";
@@ -139,6 +148,45 @@ export const verifyOtpHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ message: err.message });
         }
         console.error("OTP verification error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const resendOtpHandler = async (req: Request, res: Response) => {
+    const parsed = resendOtpSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    const { userId, channel, purpose } = parsed.data;
+    try {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const identifier = `${channel}:${user.id}`;
+
+        // rate-limit check
+        const allowed = await canRequestOtp(identifier);
+        if (!allowed) {
+            return res.status(429).json({
+                error: "Too frequent OTP requests. Please wait a minute before retrying.",
+            });
+        }
+
+        // generate and store OTP
+        const otp = generateOtp();
+        await storeOtp(identifier, otp, purpose);
+        await sendOtp(user.email ?? user.phone!!, otp, channel);
+
+        return res.status(200).json({
+            message: `OTP resent to your ${channel}.`,
+        });
+    } catch (err) {
+        if (err instanceof z.ZodError) {
+            return res.status(400).json({ message: err.message });
+        }
+        console.error("Resend OTP error:", err);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
