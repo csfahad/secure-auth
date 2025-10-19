@@ -37,7 +37,7 @@ export const registerHandler = async (req: Request, res: Response) => {
     const parsed = registerSchema.safeParse(req.body);
 
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
     }
 
     const { name, email, password, phone } = parsed.data;
@@ -98,7 +98,7 @@ export const registerHandler = async (req: Request, res: Response) => {
 export const verifyOtpHandler = async (req: Request, res: Response) => {
     const parsed = verifyOtpSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
     }
 
     const { userId, otp, channel, purpose } = parsed.data;
@@ -167,7 +167,7 @@ export const verifyOtpHandler = async (req: Request, res: Response) => {
 export const resendOtpHandler = async (req: Request, res: Response) => {
     const parsed = resendOtpSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
     }
     const { userId, channel, purpose } = parsed.data;
     try {
@@ -248,7 +248,7 @@ export const loginHandler = async (req: Request, res: Response) => {
     const parsed = loginSchema.safeParse(req.body);
 
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
     }
 
     const { email, password, phone } = parsed.data;
@@ -346,7 +346,7 @@ export const logoutHandler = async (req: Request, res: Response) => {
 export const forgotPasswordHandler = async (req: Request, res: Response) => {
     const parsed = forgetPasswordSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
     }
     const { email } = parsed.data;
     try {
@@ -385,7 +385,7 @@ export const forgotPasswordHandler = async (req: Request, res: Response) => {
 export const resetPasswordHandler = async (req: Request, res: Response) => {
     const parsed = resetPasswordSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
     }
 
     const { userId, token, newPassword } = parsed.data;
