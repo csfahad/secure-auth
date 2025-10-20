@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route";
+import profileRoutes from "./routes/profile.route";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(cookieParser());
 app.use("/api/v1/auth", authRoutes);
 
 // Private routes
+app.use("/api/v1/profile", profileRoutes);
 
 app.listen(port, () => {
     console.log(`Server is running on port: ${port}`);
