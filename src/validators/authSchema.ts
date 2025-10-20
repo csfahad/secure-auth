@@ -10,6 +10,19 @@ export const registerSchema = z
         password: z
             .string()
             .min(8, "Password must be atleast 8 characters")
+            .regex(
+                /[A-Z]/,
+                "Password must contain at least one uppercase letter"
+            )
+            .regex(
+                /[a-z]/,
+                "Password must contain at least one lowercase letter"
+            )
+            .regex(/\d/, "Password must contain at least one number")
+            .regex(/[!@#$%^&*?]/, {
+                message:
+                    "Password must contain at least one special character (!@#$%^&*?)",
+            })
             .optional(),
         name: z.string().min(3, "Name must be atleast 3 characters").optional(),
     })
