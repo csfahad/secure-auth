@@ -9,6 +9,7 @@ import {
     resendOtpSchema,
     forgetPasswordSchema,
     resetPasswordSchema,
+    changePasswordSchema,
 } from "../validators/authSchema";
 import {
     canRequestOtp,
@@ -30,6 +31,7 @@ import {
     revokeAllUserSessions,
     verifyPasswordResetToken,
 } from "../services/passwordResetService";
+import { AuthenticatedRequest } from "../types/express";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -412,6 +414,66 @@ export const resetPasswordHandler = async (req: Request, res: Response) => {
         return res.status(200).json({
             message:
                 "Password reset successful. You can now log in with your new password.",
+        });
+    } catch (err) {
+        if (err instanceof z.ZodError) {
+            return res.status(400).json({ message: err.message });
+        }
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const changePasswordHandler = async (
+    req: AuthenticatedRequest,
+    res: Response
+) => {
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
+    }
+
+    const { currentPassword, newPassword } = parsed.data;
+
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user || !user.passwordHash) {
+            return res.status(400).json({
+                error: "User not found or password-based login not enabled.",
+            });
+        }
+
+        const isMatch = await bcrypt.compare(
+            currentPassword,
+            user.passwordHash
+        );
+        if (!isMatch) {
+            return res
+                .status(400)
+                .json({ error: "Current password is incorrect" });
+        }
+
+        const saltRounds = 10;
+        const salt = await bcrypt.genSalt(saltRounds);
+        const newPasswordHash = newPassword
+            ? await bcrypt.hash(newPassword, salt)
+            : null;
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { passwordHash: newPasswordHash },
+        });
+
+        await revokeAllUserSessions(user.id);
+
+        return res.status(200).json({
+            message: "Password changed successfully, Please login again",
         });
     } catch (err) {
         if (err instanceof z.ZodError) {
