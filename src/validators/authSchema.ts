@@ -143,3 +143,29 @@ export const changePasswordSchema = z
         message: "New password cannot be the same as the current password",
         path: ["newPassword"],
     });
+
+export const getProfileSchema = z.object({});
+
+export const updateProfileSchema = z.object({
+    name: z.string().min(3, "Name must be atleast 3 characters").optional(),
+    avatarUrl: z.url().optional(),
+    bio: z
+        .string()
+        .max(500, "Bio feild cannot exceed 500 characters")
+        .optional(),
+    dateOfBirth: z
+        .string()
+        .refine((val) => !val || !isNaN(Date.parse(val)), {
+            message: "Invalid date format",
+        })
+        .optional(),
+    gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+    address: z
+        .string()
+        .max(300, "Address feild cannot exceed 300 characters")
+        .optional(),
+    phone: z
+        .string()
+        .regex(/^\d{10}$/)
+        .optional(),
+});
