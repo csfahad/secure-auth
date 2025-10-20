@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
 import {
     loginSchema,
@@ -10,6 +11,7 @@ import {
     forgetPasswordSchema,
     resetPasswordSchema,
     changePasswordSchema,
+    updateProfileSchema,
 } from "../validators/authSchema";
 import {
     canRequestOtp,
@@ -523,6 +525,56 @@ export const getProfileHandler = async (
         if (!user) return res.status(404).json({ error: "User not found" });
 
         return res.status(200).json({ user });
+    } catch (err) {
+        if (err instanceof z.ZodError) {
+            return res.status(400).json({ message: err.message });
+        }
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const updateProfileHandler = async (
+    req: AuthenticatedRequest,
+    res: Response
+) => {
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success)
+        return res.status(400).json({ error: z.treeifyError(parsed.error) });
+
+    const parsedData = parsed.data;
+
+    try {
+        const userId = req.user?.id;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        const updateData: Prisma.UserUpdateInput = {
+            ...parsedData,
+            dateOfBirth: parsedData.dateOfBirth
+                ? new Date(parsedData.dateOfBirth)
+                : undefined,
+        };
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                avatarUrl: true,
+                bio: true,
+                dateOfBirth: true,
+                gender: true,
+                address: true,
+                isEmailVerified: true,
+                isPhoneVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        return res.status(201).json({ user: updatedUser });
     } catch (err) {
         if (err instanceof z.ZodError) {
             return res.status(400).json({ message: err.message });
