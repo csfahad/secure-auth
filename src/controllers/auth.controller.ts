@@ -492,3 +492,41 @@ export const changePasswordHandler = async (
         return res.status(500).json({ error: "Internal server error" });
     }
 };
+
+export const getProfileHandler = async (
+    req: AuthenticatedRequest,
+    res: Response
+) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                avatarUrl: true,
+                bio: true,
+                dateOfBirth: true,
+                gender: true,
+                address: true,
+                isEmailVerified: true,
+                isPhoneVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        return res.status(200).json({ user });
+    } catch (err) {
+        if (err instanceof z.ZodError) {
+            return res.status(400).json({ message: err.message });
+        }
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
