@@ -9,15 +9,20 @@ datasource db {
 
 // User table - stores base profile and credentials
 model User {
-    id              String   @id @default(uuid())
-    email           String?  @unique
-    phone           String?  @unique
+    id              String    @id @default(uuid())
+    email           String?   @unique
+    phone           String?   @unique
     name            String?
     passwordHash    String? // null for OAuth users
-    isEmailVerified Boolean  @default(false)
-    isPhoneVerified Boolean  @default(false)
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
+    isEmailVerified Boolean   @default(false)
+    isPhoneVerified Boolean   @default(false)
+    avatarUrl       String?
+    bio             String?
+    dateOfBirth     DateTime?
+    gender          Gender?
+    address         String?
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
 
     // Relations
     accounts           Account[]
@@ -91,4 +96,10 @@ model Account {
     idToken           String?
 
     @@unique([provider, providerAccountId])
+}
+
+enum Gender {
+    MALE
+    FEMALE
+    OTHER
 }
