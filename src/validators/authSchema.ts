@@ -144,8 +144,6 @@ export const changePasswordSchema = z
         path: ["newPassword"],
     });
 
-export const getProfileSchema = z.object({});
-
 export const updateProfileSchema = z.object({
     name: z.string().min(3, "Name must be atleast 3 characters").optional(),
     avatarUrl: z.url().optional(),

@@ -574,7 +574,9 @@ export const updateProfileHandler = async (
             },
         });
 
-        return res.status(201).json({ user: updatedUser });
+        return res
+            .status(201)
+            .json({ message: "Profile updated", user: updatedUser });
     } catch (err) {
         if (err instanceof z.ZodError) {
             return res.status(400).json({ message: err.message });
