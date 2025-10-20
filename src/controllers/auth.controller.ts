@@ -459,6 +459,16 @@ export const changePasswordHandler = async (
                 .json({ error: "Current password is incorrect" });
         }
 
+        const isSamePassword = await bcrypt.compare(
+            newPassword,
+            user.passwordHash
+        );
+        if (isSamePassword) {
+            return res.status(400).json({
+                error: "New password cannot be the same as the current password",
+            });
+        }
+
         const saltRounds = 10;
         const salt = await bcrypt.genSalt(saltRounds);
         const newPasswordHash = newPassword
@@ -473,7 +483,7 @@ export const changePasswordHandler = async (
         await revokeAllUserSessions(user.id);
 
         return res.status(200).json({
-            message: "Password changed successfully, Please login again",
+            message: "Password changed successfully, Please log in again",
         });
     } catch (err) {
         if (err instanceof z.ZodError) {
