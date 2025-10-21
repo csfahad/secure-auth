@@ -16,19 +16,8 @@ export class NodemailerProvider implements IEmailProvider {
         });
     }
 
-    async sendEmail(payload: EmailPayload): Promise<void> {
-        const { to, subject, html, text } = payload;
-        if (process.env.NODE_ENV === "development") {
-            console.log("[DEV MODE] Email simulated:\n", {
-                to,
-                subject,
-                text,
-                htmlPreview: html.slice(0, 200) + "...",
-            });
-            return;
-        }
-
-        await this.transporter.sendMail({
+    async sendEmail({ to, subject, html, text }: EmailPayload): Promise<void> {
+        const msg = {
             from:
                 process.env.FROM_EMAIL ||
                 `"Secure Auth" <no-reply@secureauth.com>`,
@@ -36,6 +25,21 @@ export class NodemailerProvider implements IEmailProvider {
             subject,
             html,
             text,
-        });
+        };
+
+        if (process.env.NODE_ENV === "development") {
+            console.log("[DEV MODE] Custom Nodemailer Email simulated:\n", msg);
+            return;
+        }
+
+        try {
+            await this.transporter.sendMail(msg);
+        } catch (error: any) {
+            console.error(
+                "Custom Nodemailer Error:",
+                error.response?.body || error.message
+            );
+            throw new Error("Failed to send email via Custom Nodemailer");
+        }
     }
 }
