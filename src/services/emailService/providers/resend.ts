@@ -9,7 +9,7 @@ export class ResendProvider implements IEmailProvider {
     }
 
     async sendEmail({ to, subject, html, text }: EmailPayload): Promise<void> {
-        await this.resend.emails.send({
+        const msg = {
             from:
                 process.env.FROM_EMAIL ||
                 `"Secure Auth" <no-reply@secureauth.com>`,
@@ -17,6 +17,21 @@ export class ResendProvider implements IEmailProvider {
             subject,
             html,
             text,
-        });
+        };
+
+        if (process.env.NODE_ENV === "development") {
+            console.log("[DEV MODE] Resend simulated email:", msg);
+            return;
+        }
+
+        try {
+            await this.resend.emails.send(msg);
+        } catch (error: any) {
+            console.error(
+                "Resend Error:",
+                error.response?.body || error.message
+            );
+            throw new Error("Failed to send email via Resend");
+        }
     }
 }
