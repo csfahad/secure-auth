@@ -5,6 +5,11 @@ import { SendgridProvider } from "./providers/sendgrid";
 import { MailgunProvider } from "./providers/mailgun";
 import { GmailProvider } from "./providers/gmail";
 
+export * from "./templates/welcomeEmail";
+export * from "./templates/verifyEmailOtpTemplate";
+export * from "./templates/resetPasswordTemplate";
+export * from "./templates/passwordChangedTemplate";
+
 type ProviderType = "nodemailer" | "resend" | "sendgrid" | "mailgun" | "gmail";
 
 class EmailService {
