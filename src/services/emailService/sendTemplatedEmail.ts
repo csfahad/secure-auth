@@ -1,12 +1,14 @@
 import { emailService } from "./index";
-import { verifyEmailOtpTemplate } from "./templates/verifyEmailOtpTemplate";
+import { verifyOtpTemplate } from "./templates/verifyOtpTemplate";
 import { resetPasswordTemplate } from "./templates/resetPasswordTemplate";
 import { passwordChangedTemplate } from "./templates/passwordChangedTemplate";
 import { WelcomeEmail } from "./templates/welcomeEmail";
 
+const isProd = process.env.NODE_ENV === "production";
+
 type TemplateType =
-    | "resetPassword"
     | "verifyOtp"
+    | "resetPassword"
     | "passwordChanged"
     | "welcome";
 
@@ -15,40 +17,48 @@ interface TemplateData {
     name?: string;
     otp?: string;
     resetLink?: string;
-    verifyLink?: string;
 }
 
 export async function sendTemplatedEmail(
     template: TemplateType,
     data: TemplateData
 ) {
-    let content;
+    let content: { subject: string; html: string; text?: string };
 
     switch (template) {
+        case "verifyOtp":
+            if (!data.otp) throw new Error("Missing otp for verifyOtp");
+            content = verifyOtpTemplate(data.name || "User", data.otp);
+            break;
+
         case "resetPassword":
             if (!data.resetLink)
-                throw new Error("Missing resetLink for forgotPassword");
+                throw new Error("Missing resetLink for resetPassword");
             content = resetPasswordTemplate(
                 data.name || "User",
                 data.resetLink
             );
             break;
-        case "verifyOtp":
-            if (!data.verifyLink)
-                throw new Error("Missing verifyLink for verifyEmail");
-            content = verifyEmailOtpTemplate(
-                data.name || "User",
-                data.verifyLink
-            );
-            break;
+
         case "passwordChanged":
             content = passwordChangedTemplate(data.name || "User");
             break;
+
         case "welcome":
             content = WelcomeEmail(data.name || "User");
             break;
+
         default:
-            throw new Error("Unknown email template");
+            throw new Error("Unknown template");
+    }
+
+    // Dev-mode logging
+    if (!isProd) {
+        console.log("[DEV EMAIL] To:", data.to);
+        console.log("Subject:", content.subject);
+        console.log("Text:", content.text);
+        console.log("HTML:", content.html);
+        return;
     }
 
     await emailService.sendEmail({

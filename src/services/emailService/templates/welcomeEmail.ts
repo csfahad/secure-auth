@@ -7,9 +7,10 @@ export const WelcomeEmail = (name: string, appName = "Secure Auth") => {
         <p>Start exploring your dashboard and take advantage of everything we offer.</p>
         <p>Cheers,<br/>The ${appName} Team</p>
     `;
-    return {
-        subject: `Welcome to ${appName}!`,
-        html: buildEmailContent(`Welcome to ${appName}`, bodyHtml),
-        text: `Hi ${name || "there"}, welcome to ${appName}!`,
-    };
+
+    const subject = `Welcome to ${appName}!`;
+    const html = buildEmailContent(`Welcome to ${appName}`, bodyHtml);
+    const text = `Hi ${name || "there"}, welcome to ${appName}!`;
+
+    return { subject, html, text };
 };

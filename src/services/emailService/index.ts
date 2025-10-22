@@ -6,7 +6,7 @@ import { MailgunProvider } from "./providers/mailgun";
 import { GmailProvider } from "./providers/gmail";
 
 export * from "./templates/welcomeEmail";
-export * from "./templates/verifyEmailOtpTemplate";
+export * from "./templates/verifyOtpTemplate";
 export * from "./templates/resetPasswordTemplate";
 export * from "./templates/passwordChangedTemplate";
 
