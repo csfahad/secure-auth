@@ -34,6 +34,7 @@ import {
     verifyPasswordResetToken,
 } from "../services/passwordResetService";
 import { AuthenticatedRequest } from "../types/express";
+import { sendTemplatedEmail } from "../services/emailService/sendTemplatedEmail";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -85,6 +86,12 @@ export const registerHandler = async (req: Request, res: Response) => {
         await storeOtp(identifier, otp, purpose);
         await sendOtp(email ?? phone!, otp, channel);
 
+        await sendTemplatedEmail("verifyOtp", {
+            to: email!,
+            name,
+            otp,
+        });
+
         return res.status(201).json({
             message: `OTP sent to your ${channel}: ${
                 email ?? phone
@@ -131,6 +138,13 @@ export const verifyOtpHandler = async (req: Request, res: Response) => {
                 where: { id: user.id },
                 data: updateData,
             });
+
+            if (channel === "email") {
+                await sendTemplatedEmail("welcome", {
+                    to: user.email!,
+                    name: user.name as string | undefined,
+                });
+            }
 
             return res.status(200).json({
                 message: `${channel} verification successful.`,
@@ -365,8 +379,6 @@ export const forgotPasswordHandler = async (req: Request, res: Response) => {
         }
 
         const token = createPasswordResetToken(user.id);
-
-        // in production: send email with reset-link
         const resetLink = `${
             isProd ? process.env.FRONTEND_URL : "http://localhost:3000"
         }/auth/reset-password?token=${token}&id=${user.id}`;
@@ -375,6 +387,12 @@ export const forgotPasswordHandler = async (req: Request, res: Response) => {
         console.log(`Password reset link (dev): ${resetLink}`);
 
         // TODO: send email in production
+        await sendTemplatedEmail("resetPassword", {
+            to: user.email!,
+            name: user.name as string | undefined,
+            resetLink,
+        });
+
         return res
             .status(200)
             .json({ message: "Password reset link sent to your email." });
@@ -483,6 +501,11 @@ export const changePasswordHandler = async (
         });
 
         await revokeAllUserSessions(user.id);
+
+        await sendTemplatedEmail("passwordChanged", {
+            to: user.email!,
+            name: user.name as string | undefined,
+        });
 
         return res.status(200).json({
             message: "Password changed successfully, Please log in again",
