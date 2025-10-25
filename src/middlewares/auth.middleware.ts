@@ -36,6 +36,6 @@ export const isAuthenticated = (
         next();
     } catch (err) {
         console.error(`JWT verification error: ${err}`);
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(500).json({ error: "Unauthorized" });
     }
 };
