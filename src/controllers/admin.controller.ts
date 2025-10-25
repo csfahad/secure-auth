@@ -1,25 +1,60 @@
 import { Response } from "express";
+import { Prisma } from "@prisma/client";
+import { z } from "zod";
 import prisma from "../lib/prisma";
 import { AuthenticatedRequest } from "../types/express";
-import { updateUserRoleSchema } from "../validators/adminSchema";
-import { z } from "zod";
+import {
+    getAllUsersSchema,
+    updateUserRoleSchema,
+} from "../validators/adminSchema";
+
+const iMode: Prisma.QueryMode = "insensitive";
 
 // fetch all users (Admin and SuperAdmin only)
 export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-        const users = await prisma.user.findMany({
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-                role: true,
-                createdAt: true,
-            },
-            orderBy: { createdAt: "desc" },
-        });
+    const parsed = getAllUsersSchema.safeParse(req.query);
+    if (!parsed.success) {
+        return res.status(401).json({ error: z.treeifyError(parsed.error) });
+    }
 
-        return res.status(200).json({ totalUsers: users.length, users });
+    const { page, limit, search } = parsed.data;
+
+    const skip = (page - 1) * limit;
+    const where = search
+        ? {
+              OR: [
+                  { name: { contains: search, mode: iMode } },
+                  { email: { contains: search, mode: iMode } },
+                  { phone: { contains: search, mode: iMode } },
+              ],
+          }
+        : {};
+
+    try {
+        const [users, totalCount] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                skip,
+                take: limit,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    role: true,
+                    createdAt: true,
+                },
+                orderBy: { createdAt: "desc" },
+            }),
+            prisma.user.count({ where }),
+        ]);
+
+        return res.status(200).json({
+            totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+            currentPage: page,
+            users,
+        });
     } catch (err) {
         console.error("AdminController -> getAllUsers error:", err);
         return res.status(500).json({ error: "Internal server error" });
