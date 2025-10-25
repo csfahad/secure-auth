@@ -5,7 +5,7 @@ import { updateUserRoleSchema } from "../validators/adminSchema";
 import { z } from "zod";
 
 // fetch all users (Admin and SuperAdmin only)
-export const getAllUsers = async (res: Response) => {
+export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const users = await prisma.user.findMany({
             select: {
@@ -19,10 +19,10 @@ export const getAllUsers = async (res: Response) => {
             orderBy: { createdAt: "desc" },
         });
 
-        return res.status(200).json({ "Total users": users.length, users });
+        return res.status(200).json({ totalUsers: users.length, users });
     } catch (err) {
         console.error("AdminController -> getAllUsers error:", err);
-        res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ error: "Internal server error" });
     }
 };
 

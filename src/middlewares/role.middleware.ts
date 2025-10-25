@@ -2,7 +2,7 @@ import { Response, NextFunction } from "express";
 import prisma from "../lib/prisma";
 import { AuthenticatedRequest } from "../types/express";
 
-export async function requireRole(roles: ("USER" | "ADMIN" | "SUPERADMIN")[]) {
+export function requireRole(roles: ("USER" | "ADMIN" | "SUPERADMIN")[]) {
     return async (
         req: AuthenticatedRequest,
         res: Response,
