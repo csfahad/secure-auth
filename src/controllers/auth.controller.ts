@@ -423,13 +423,18 @@ export const resetPasswordHandler = async (req: Request, res: Response) => {
             ? await bcrypt.hash(newPassword, salt)
             : null;
 
-        await prisma.user.update({
+        const user = await prisma.user.update({
             where: { id: userId },
             data: { passwordHash },
         });
 
         // revoke all sessions for this user
         await revokeAllUserSessions(userId);
+
+        await sendTemplatedEmail("passwordChanged", {
+            to: user.email!,
+            name: user.name as string | undefined,
+        });
 
         return res.status(200).json({
             message:
