@@ -378,7 +378,7 @@ export const forgotPasswordHandler = async (req: Request, res: Response) => {
             });
         }
 
-        const token = createPasswordResetToken(user.id);
+        const token = await createPasswordResetToken(user.id);
         const resetLink = `${
             isProd ? process.env.FRONTEND_URL : "http://localhost:3000"
         }/auth/reset-password?token=${token}&id=${user.id}`;
