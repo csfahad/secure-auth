@@ -16,6 +16,7 @@ model User {
     passwordHash    String? // null for OAuth users
     isEmailVerified Boolean   @default(false)
     isPhoneVerified Boolean   @default(false)
+    role            Role      @default(USER)
     avatarUrl       String?
     bio             String?
     dateOfBirth     DateTime?
@@ -102,4 +103,10 @@ enum Gender {
     MALE
     FEMALE
     OTHER
+}
+
+enum Role {
+    USER
+    ADMIN
+    SUPERADMIN
 }
