@@ -1,22 +1,12 @@
 import { z } from "zod";
 
 export const getAllUsersSchema = z.object({
-    page: z
-        .string()
-        .optional()
-        .transform((val) => (val ? parseInt(val, 10) : 1))
-        .refine((val) => val > 0, "Page must be greater than 0"),
-
-    limit: z
-        .string()
-        .optional()
-        .transform((val) => (val ? parseInt(val, 10) : 10))
-        .refine(
-            (val) => val > 0 && val <= 100,
-            "Limit must be between 1 and 100"
-        ),
-
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
     search: z.string().optional(),
+    role: z.enum(["USER", "ADMIN", "SUPERADMIN"]).optional(),
+    sortBy: z.enum(["name", "createdAt", "role"]).optional(),
+    sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
 export const updateUserRoleSchema = z.object({
