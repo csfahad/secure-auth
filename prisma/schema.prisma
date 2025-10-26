@@ -88,13 +88,14 @@ model OtpRequest {
 model Account {
     id                String    @id @default(uuid())
     userId            String
-    User              User      @relation(fields: [userId], references: [id])
+    user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
     provider          String // "google", "github", etc.
     providerAccountId String // unique ID from provider
     accessToken       String?
     refreshToken      String?
     expiresAt         DateTime?
-    idToken           String?
+    createdAt         DateTime  @default(now())
+    updatedAt         DateTime  @updatedAt
 
     @@unique([provider, providerAccountId])
 }
