@@ -8,8 +8,6 @@ import {
     updateUserRoleSchema,
 } from "../validators/adminSchema";
 
-const iMode: Prisma.QueryMode = "insensitive";
-
 // fetch all users (Admin and SuperAdmin only)
 export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
     const parsed = getAllUsersSchema.safeParse(req.query);
@@ -17,18 +15,30 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
         return res.status(401).json({ error: z.treeifyError(parsed.error) });
     }
 
-    const { page, limit, search } = parsed.data;
+    const { page, limit, search, sortBy, sortOrder, role } = parsed.data;
 
     const skip = (page - 1) * limit;
-    const where = search
-        ? {
-              OR: [
-                  { name: { contains: search, mode: iMode } },
-                  { email: { contains: search, mode: iMode } },
-                  { phone: { contains: search, mode: iMode } },
-              ],
-          }
-        : {};
+    const iMode: Prisma.QueryMode = "insensitive";
+
+    const where: Prisma.UserWhereInput = {
+        ...(role ? { role } : {}),
+        ...(search
+            ? {
+                  OR: [
+                      { name: { contains: search, mode: iMode } },
+                      { email: { contains: search, mode: iMode } },
+                      { phone: { contains: search, mode: iMode } },
+                  ],
+              }
+            : {}),
+    };
+
+    const orderByField =
+        sortBy && ["name", "createdAt", "role"].includes(sortBy)
+            ? sortBy
+            : "createdAt";
+
+    const orderByOrder = sortOrder === "asc" ? "asc" : "desc";
 
     try {
         const [users, totalCount] = await Promise.all([
@@ -44,7 +54,7 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
                     role: true,
                     createdAt: true,
                 },
-                orderBy: { createdAt: "desc" },
+                orderBy: { [orderByField]: orderByOrder },
             }),
             prisma.user.count({ where }),
         ]);
