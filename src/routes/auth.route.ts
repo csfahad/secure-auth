@@ -13,6 +13,7 @@ import {
 import { isAuthenticated } from "../middlewares/auth.middleware";
 import passport from "../lib/passport";
 import { setAuthCookies } from "../utils/cookies";
+import { googleOAuthHandler } from "../controllers/oauth.controller";
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.post("/reset-password", resetPasswordHandler);
 router.post("/change-password", isAuthenticated, changePasswordHandler);
 router.post("/logout", logoutHandler);
 
-// OAuth routes
+// Google OAuth(web-flow) routes
 // redirect user to google-login page
 router.get(
     "/google",
@@ -42,8 +43,12 @@ router.get(
         setAuthCookies(res, data.jwtToken, data.refreshTokenCookie);
 
         res.redirect(
-            process.env.CLIENT_REDIRECT_URL || "http://localhost:5173/dashboard"
+            process.env.CLIENT_REDIRECT_URL || "http://localhost:3000/dashboard"
         );
     }
 );
+
+// Google OAuth (token verification - for mobile/SPA) routes
+router.post("/google/verify", googleOAuthHandler.verifyGoogleToken);
+
 export default router;
