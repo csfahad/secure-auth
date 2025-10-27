@@ -167,3 +167,11 @@ export const updateProfileSchema = z.object({
         .regex(/^\d{10}$/)
         .optional(),
 });
+
+export const googleOAuthCallbackSchema = z.object({
+    code: z.string().nonempty("Authorization code is required"),
+});
+
+export const googleOAuthLoginSchema = z.object({
+    tokenId: z.string().nonempty("Google token is required"),
+});
