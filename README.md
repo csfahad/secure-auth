@@ -19,7 +19,6 @@ A comprehensive, production-ready authentication system built with Node.js, Type
 -   **Session Management**: Secure session handling with Redis
 -   **Rate Limiting**: Built-in OTP request rate limiting
 -   **CORS Protection**: Configurable CORS settings
--   **Helmet.js**: Security headers middleware
 -   **Cookie Security**: HTTPOnly, Secure, and SameSite cookies
 
 ### Email Services
@@ -55,7 +54,7 @@ Support for multiple email providers:
 -   **Authentication**: JWT, Passport.js
 -   **Validation**: Zod schemas
 -   **Email**: Multiple provider support
--   **Security**: bcryptjs, Helmet, CORS
+-   **Security**: bcryptjs, CORS
 -   **Development**: Nodemon, ts-node
 
 ## Prerequisites
@@ -503,10 +502,9 @@ This application implements several security measures:
 2. **JWT Security**: Short-lived access tokens, long-lived refresh tokens
 3. **Rate Limiting**: OTP request rate limiting
 4. **CORS Protection**: Configurable CORS policies
-5. **Security Headers**: Helmet.js middleware
-6. **Input Validation**: Zod schema validation
-7. **Cookie Security**: HTTPOnly, Secure, SameSite attributes
-8. **Session Management**: Redis-based session storage
+5. **Input Validation**: Zod schema validation
+6. **Cookie Security**: HTTPOnly, Secure, SameSite attributes
+7. **Session Management**: Redis-based session storage
 
 ## Development
 
