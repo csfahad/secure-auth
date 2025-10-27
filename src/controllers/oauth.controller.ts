@@ -9,7 +9,7 @@ import { setAuthCookies } from "../utils/cookies";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID!);
 
-export const googleOAuthController = {
+export const googleOAuthHandler = {
     // for direct token verification (used in mobile or frontend SPA)
     async verifyGoogleToken(req: Request, res: Response) {
         const parsed = googleOAuthLoginSchema.safeParse(req.body);
