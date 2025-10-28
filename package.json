@@ -33,6 +33,9 @@
         "passport": "^0.7.0",
         "passport-google-oauth20": "^2.0.0",
         "resend": "^6.2.1",
+        "swagger-jsdoc": "^6.2.8",
+        "swagger-themes": "^1.4.3",
+        "swagger-ui-express": "^5.0.1",
         "zod": "^4.1.12"
     },
     "devDependencies": {
@@ -44,6 +47,8 @@
         "@types/nodemailer": "^7.0.2",
         "@types/passport": "^1.0.17",
         "@types/passport-google-oauth20": "^2.0.17",
+        "@types/swagger-jsdoc": "^6.0.4",
+        "@types/swagger-ui-express": "^4.1.8",
         "nodemon": "^3.1.10",
         "prisma": "^6.17.0",
         "ts-node": "^10.9.2",
